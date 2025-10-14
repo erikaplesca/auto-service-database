@@ -24,7 +24,7 @@ A comprehensive relational database system for managing automotive service cente
 
 This project implements a complete relational database for an auto repair shop, covering the entire workflow from customer scheduling to service completion and invoicing. The system handles both individual and corporate clients, manages repair processes, tracks parts inventory, and automates billing.
 
-**Core Functionality:**
+**Core functionality:**
 - Client and vehicle management
 - Appointment scheduling
 - Cost estimation and quotes
@@ -47,6 +47,7 @@ This project implements a complete relational database for an auto repair shop, 
 - ✅ **Comprehensive Schema**: 17 interconnected tables
 - ✅ **Data Integrity**: Foreign keys, check constraints, and unique constraints
 
+---
 ### 💼 Business Logic Implementation
 
 #### 1. **Client Management**
@@ -99,6 +100,7 @@ WHERE NOT EXISTS (
 );
 ```
 
+---
 
 ##💡 Technical achievements
 🔍 Advanced SQL Techniques
@@ -235,7 +237,7 @@ CONSTRAINT fk_proces_factura FOREIGN KEY (id_factura)
 CONSTRAINT check_status CHECK (status IN ('Platita', 'Neplatita'))
 CONSTRAINT check_salariu CHECK (salariu >= 0)
  ```
-
+---
 **📊 Advanced SQL Examples
 Query Complexity Showcase
 The project includes 15+ complex queries demonstrating:
@@ -284,7 +286,7 @@ HAVING SUM(NVL(p.pret_standard, 0)) > (
 ORDER BY total_piese DESC;
  ```
 
-
+---
 **🎓 Learning Outcomes
 This project demonstrates comprehensive understanding of:
 Database Design
@@ -316,6 +318,8 @@ Business Logic
 * ✅ Process automation
 * ✅ Data validation rules
 
+---
+
 📁 Project Structure
 auto-service-db/
 │
@@ -328,6 +332,8 @@ auto-service-db/
 │   └── conceptual-diagram.png
 │
 └── README.md
+
+---
 
 🔍 Key Highlights
 🎯 Smart Features
@@ -353,6 +359,8 @@ auto-service-db/
 * Business Rules: Implemented via constraints and triggers
 * Audit Trail: Timestamp tracking for all major operations
 
+---
+
 📝 Documentation
 The project includes comprehensive documentation:
 * 70+ pages of detailed analysis and implementation
@@ -361,6 +369,8 @@ The project includes comprehensive documentation:
 * Complete data dictionary for all tables and columns
 * Normalization examples (1NF, 2NF, 3NF, BCNF)
 
+---
+
 🏆 Project Achievements
 * ✅ Complex Schema: 17 interconnected tables with proper relationships
 * ✅ Advanced SQL: 15+ complex queries showcasing various techniques
@@ -368,6 +378,8 @@ The project includes comprehensive documentation:
 * ✅ Data Integrity: Comprehensive constraint system
 * ✅ Normalization: Full normalization to 3NF with BCNF analysis
 * ✅ Real-world Application: Practical solution for actual business needs
+
+---
 
 👨‍💻 Author
 Maria-Erika Pleșca Group 133 Faculty of Computer Science, Year 1 Database Fundamentals Course
