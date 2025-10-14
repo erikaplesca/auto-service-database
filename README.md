@@ -14,11 +14,8 @@ A comprehensive relational database system for managing automotive service cente
 
 - [Project Overview](#-project-overview)
 - [Key Features](#-key-features)
-- [Database Architecture](#-database-architecture)
 - [Technical Achievements](#-technical-achievements)
 - [Advanced SQL Examples](#-advanced-sql-examples)
-- [Database Schema](#️-database-schema)
-- [Installation & Setup](#-installation--setup)
 - [Learning Outcomes](#-learning-outcomes)
 
 ---
@@ -103,7 +100,7 @@ WHERE NOT EXISTS (
 ```
 
 
-###💡 Technical Achievements
+##💡 Technical achievements
 🔍 Advanced SQL Techniques
 1. Complex Synchronized Subqueries
 -- Find mechanics working on 'Turism' cars owned by individual with above-average repair count
@@ -239,7 +236,7 @@ CONSTRAINT check_status CHECK (status IN ('Platita', 'Neplatita'))
 CONSTRAINT check_salariu CHECK (salariu >= 0)
  ```
 
-***📊 Advanced SQL Examples
+**📊 Advanced SQL Examples
 Query Complexity Showcase
 The project includes 15+ complex queries demonstrating:
 - Feature	Implementation	Query Count
@@ -288,7 +285,7 @@ ORDER BY total_piese DESC;
  ```
 
 
-🎓 Learning Outcomes
+**🎓 Learning Outcomes
 This project demonstrates comprehensive understanding of:
 Database Design
 * ✅ Entity-Relationship modeling
