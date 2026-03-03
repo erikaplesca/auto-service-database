@@ -1,16 +1,12 @@
 # auto-service-database
 
-# 🚗 Auto Service Management Database System
+# Auto Service Management Database System
 
 A comprehensive relational database system for managing automotive service center operations, developed in **Oracle 19c** using **SQL Developer**.
 
-![Oracle](https://img.shields.io/badge/Oracle-19c-F80000?style=for-the-badge&logo=oracle&logoColor=white)
-![SQL](https://img.shields.io/badge/SQL-PL%2FSQL-336791?style=for-the-badge&logo=postgresql&logoColor=white)
-![Database](https://img.shields.io/badge/Database-Relational-4479A1?style=for-the-badge&logo=database&logoColor=white)
-
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Project Overview](#-project-overview)
 - [Key Features](#-key-features)
@@ -20,7 +16,7 @@ A comprehensive relational database system for managing automotive service cente
 
 ---
 
-## 🎯 Project Overview
+## Project Overview
 
 This project implements a complete relational database for an auto repair shop, covering the entire workflow from customer scheduling to service completion and invoicing. The system handles both individual and corporate clients, manages repair processes, tracks parts inventory, and automates billing.
 
@@ -35,20 +31,18 @@ This project implements a complete relational database for an auto repair shop, 
 
 ---
 
-## ⭐ Key Features
+## Key Features
 
-### 🏗️ Database Design Excellence
-
-- ✅ **Fully Normalized**: Complete normalization to 3NF (Third Normal Form)
-- ✅ **Complex Relationships**: Multiple relationship types including:
+- **Fully Normalized**: Complete normalization to 3NF (Third Normal Form)
+- **Complex Relationships**: Multiple relationship types including:
   - Entity specialization (CLIENT → PERSOANA_FIZICA / PERSOANA_JURIDICA)
   - Many-to-many relationships via associative tables
   - Ternary relationships (MECANIC - PROCES_REP - SERVICIU)
-- ✅ **Comprehensive Schema**: 17 interconnected tables
-- ✅ **Data Integrity**: Foreign keys, check constraints, and unique constraints
+- **Comprehensive Schema**: 17 interconnected tables
+- **Data Integrity**: Foreign keys, check constraints, and unique constraints
 
 ---
-### 💼 Business Logic Implementation
+### Business Logic Implementation
 
 #### 1. **Client Management**
 
@@ -102,9 +96,8 @@ WHERE NOT EXISTS (
 
 ---
 
-##💡 Technical achievements
-🔍 Advanced SQL Techniques
-1. Complex Synchronized Subqueries
+##Technical achievements
+1. Complex SQL Synchronized Subqueries
 -- Find mechanics working on 'Turism' cars owned by individual with above-average repair count
  ```sql
 SELECT DISTINCT a.nume, a.prenume, m.tip_mecanic
@@ -224,7 +217,7 @@ SELECT * FROM (
 WHERE ROWNUM <= 3;
  ```
 
-***🛡️ Data Integrity Features
+***Data Integrity Features
 -- Referential integrity with cascading
  ```sql
 CONSTRAINT fk_proces_factura FOREIGN KEY (id_factura)
@@ -238,7 +231,7 @@ CONSTRAINT check_status CHECK (status IN ('Platita', 'Neplatita'))
 CONSTRAINT check_salariu CHECK (salariu >= 0)
  ```
 ---
-**📊 Advanced SQL Examples
+**Advanced SQL Examples
 Query Complexity Showcase
 The project includes 15+ complex queries demonstrating:
 - Feature	Implementation	Query Count
@@ -287,112 +280,51 @@ ORDER BY total_piese DESC;
  ```
 
 ---
-**🎓 Learning Outcomes
+** Learning Outcomes
 This project demonstrates comprehensive understanding of:
 Database Design
-* ✅ Entity-Relationship modeling
-* ✅ Normalization (1NF → 2NF → 3NF → BCNF)
-* ✅ Constraint design and implementation
-* ✅ Specialization and generalization
+* Entity-Relationship modeling
+* Normalization (1NF → 2NF → 3NF → BCNF)
+* Constraint design and implementation
+* Specialization and generalization
   
 SQL Proficiency
-* ✅ Complex multi-table joins
-* ✅ Subqueries (synchronized and unsynchronized)
-* ✅ Aggregate functions and GROUP BY
-* ✅ Window functions and analytics
-* ✅ Common Table Expressions (CTE)
-* ✅ Set operations (UNION, INTERSECT, MINUS)
-  
-Oracle-Specific Features
-* ✅ Sequences for auto-increment
-* ✅ DECODE and NVL functions
-* ✅ Hierarchical queries
-* ✅ Advanced date functions
-* ✅ Constraint management
-* ✅ View creation and management
-  
-Business Logic
-* ✅ Automated data generation
-* ✅ Dynamic pricing calculations
-* ✅ Role-based access control
-* ✅ Process automation
-* ✅ Data validation rules
+* Complex multi-table joins
+* Subqueries (synchronized and unsynchronized)
+* Aggregate functions and GROUP BY
+* Window functions and analytics
+* Common Table Expressions (CTE)
+* Set operations (UNION, INTERSECT, MINUS)
 
 ---
 
-📁 Project Structure
+Project Structure
 auto-service-db/
 │
-├── 133_Plesca_Maria-Erika-proiect.docx    # Complete project documentation
 ├── 133_Plesca_Maria-Erika-creare_inserare.txt  # DDL and DML scripts
 ├── 133_Plesca_Maria-Erika-exemple.txt     # Complex query examples
 │
-├── diagrams/
-│   ├── entity-relationship-diagram.png
-│   └── conceptual-diagram.png
+├──Proiect_BD_Plesca_Maria-Erika # complete documentation of the project
+│
+├── Diag_E/R.jpg
+├── Diag_conceptuala.jpg
 │
 └── README.md
-
----
-
-🔍 Key Highlights
-🎯 Smart Features
-1. Automated Mechanic Assignment
-    * Round-robin distribution ensures balanced workload
-    * Mechanics assigned by specialization and alphabetically
-    * Prevents overloading individual employees
-2. Dynamic Invoice Calculation
-    * Automatic summation of service costs
-    * Supplier discounts applied to parts
-    * Payment terms based on client type
-3. Intelligent Parts Linking
-    * Automated association of parts to services
-    * Based on service requirements
-    * Prevents manual data entry errors
-4. Process Automation
-    * Automatic process creation from approved quotes
-    * Status tracking at multiple levels
-    * Invoice generation only when work is complete
-📊 Data Quality
-* Referential Integrity: All relationships enforced via foreign keys
-* Domain Validation: CHECK constraints on all critical fields
-* Business Rules: Implemented via constraints and triggers
-* Audit Trail: Timestamp tracking for all major operations
 
 ---
 
 📝 Documentation
 The project includes comprehensive documentation:
 * 70+ pages of detailed analysis and implementation
-* 17 diagrams (ER diagrams, conceptual models, normalization examples)
 * 15+ complex SQL queries with explanations
-* Complete data dictionary for all tables and columns
 * Normalization examples (1NF, 2NF, 3NF, BCNF)
 
 ---
 
-🏆 Project Achievements
-* ✅ Complex Schema: 17 interconnected tables with proper relationships
-* ✅ Advanced SQL: 15+ complex queries showcasing various techniques
-* ✅ Business Logic: Automated workflows and intelligent data processing
-* ✅ Data Integrity: Comprehensive constraint system
-* ✅ Normalization: Full normalization to 3NF with BCNF analysis
-* ✅ Real-world Application: Practical solution for actual business needs
+Author: Maria-Erika Pleșca
+ Faculty of Computer Science, Year 1
+Database Fundamentals Course
 
----
-
-👨‍💻 Author
-Maria-Erika Pleșca Group 133 Faculty of Computer Science, Year 1 Database Fundamentals Course
-
-📅 Academic Year
+Academic Year
 2024-2025, Semester 2
-
-📄 License
-This is an academic project developed for educational purposes.
-
-🙏 Acknowledgments
-* Course Instructor: Lect.dr. Letiția Marin
-* Oracle Documentation and Community
-* Parents' auto service business for inspiration and real-world insights
-
 
