@@ -1,0 +1,805 @@
+------------------ 10. Crearea unor secvențe ce vor fi utilizate
+------------------ în inserarea înregistrărilor în tabele
+
+CREATE SEQUENCE SEQ_CLIENT    
+	START WITH 1 INCREMENT BY 1 MINVALUE 1 MAXVALUE 999999 NOCYCLE NOCACHE;
+
+CREATE SEQUENCE SEQ_MASINA    
+	START WITH 1 INCREMENT BY 1 MINVALUE 1 MAXVALUE 999999 NOCYCLE NOCACHE;
+
+CREATE SEQUENCE SEQ_PROGRAMARE    
+	START WITH 1 INCREMENT BY 1 MINVALUE 1 MAXVALUE 999999 NOCYCLE NOCACHE;
+
+CREATE SEQUENCE SEQ_DEVIZ    
+	START WITH 1 INCREMENT BY 1 MINVALUE 1 MAXVALUE 999999 NOCYCLE NOCACHE;
+
+CREATE SEQUENCE SEQ_SERVICIU
+	START WITH 1 INCREMENT BY 1 MINVALUE 1 MAXVALUE 999999 NOCYCLE NOCACHE;
+
+CREATE SEQUENCE SEQ_ANGAJATI
+	START WITH 1 INCREMENT BY 1 MINVALUE 1 MAXVALUE 999999 NOCYCLE NOCACHE;
+
+CREATE SEQUENCE SEQ_PROCES_REP
+	START WITH 1 INCREMENT BY 1 MINVALUE 1 MAXVALUE 999999 NOCYCLE NOCACHE;
+
+CREATE SEQUENCE SEQ_FACTURA
+	START WITH 1 INCREMENT BY 1 MINVALUE 1 MAXVALUE 999999 NOCYCLE NOCACHE;
+
+CREATE SEQUENCE SEQ_PIESA
+	START WITH 1 INCREMENT BY 1 MINVALUE 1 MAXVALUE 999999 NOCYCLE NOCACHE;
+
+CREATE SEQUENCE SEQ_FURNIZOR
+	START WITH 1 INCREMENT BY 1 MINVALUE 1 MAXVALUE 999999 NOCYCLE NOCACHE;
+
+
+------------------ 11. Crearea tabelelor în SQL și inserarea de date coerente
+
+-- CREAREA DE TABELE
+
+CREATE TABLE CLIENT ( 
+	id_client NUMBER PRIMARY KEY,    
+	adresa VARCHAR2(100) NOT NULL,    
+	telefon VARCHAR2(15) NOT NULL,    
+	email VARCHAR2(50)
+);
+
+CREATE TABLE PERSOANA_FIZICA (    
+	id_client NUMBER PRIMARY KEY,    
+	nume VARCHAR2(30) NOT NULL,    
+	prenume VARCHAR2(30) NOT NULL,    
+	cnp CHAR(13) UNIQUE NOT NULL,    
+	CONSTRAINT subentitate_pf_client FOREIGN KEY (id_client)         
+		REFERENCES CLIENT(id_client),    
+	CONSTRAINT marime_cnp CHECK (LENGTH(cnp) = 13)
+);
+	
+
+CREATE TABLE PERSOANA_JURIDICA (    
+	id_client NUMBER PRIMARY KEY,    
+	denumire VARCHAR2(50) NOT NULL,    
+	cui CHAR(8) UNIQUE NOT NULL,    
+	CONSTRAINT subentitate_pj_client FOREIGN KEY (id_client)        
+		REFERENCES CLIENT(id_client),    
+	CONSTRAINT marime_cui CHECK (LENGTH(cui) = 8)
+);
+
+CREATE TABLE MASINA (   
+	id_masina NUMBER PRIMARY KEY,    
+	id_client NUMBER NOT NULL,    
+	tip_masina VARCHAR2(20) NOT NULL,    
+	marca VARCHAR2(20) NOT NULL,    
+	model VARCHAR2(20) NOT NULL,    
+	an_fabricatie NUMBER(4) NOT NULL,    
+	nr_inmatriculare VARCHAR2(10) UNIQUE NOT NULL,    
+	CONSTRAINT fk_masina_client FOREIGN KEY (id_client)        
+	REFERENCES CLIENT(id_client)
+);
+
+CREATE TABLE PROGRAMARE (    
+	id_programare NUMBER PRIMARY KEY,    
+	id_client NUMBER NOT NULL,    
+	id_masina NUMBER NOT NULL,    
+	data_ora TIMESTAMP NOT NULL,    
+	CONSTRAINT fk_prog_client FOREIGN KEY (id_client)        
+		REFERENCES CLIENT(id_client),    
+	CONSTRAINT fk_prog_masina FOREIGN KEY (id_masina)        
+		REFERENCES MASINA(id_masina)
+);
+
+CREATE TABLE DEVIZ (    
+	id_deviz NUMBER PRIMARY KEY,    
+	id_programare NUMBER UNIQUE NOT NULL,    
+	data_eliberarii DATE NOT NULL,    	
+	cost_estimat NUMBER(10,2) NOT NULL,   
+	status VARCHAR2(15) DEFAULT 'In elaborare'         
+	CHECK (status IN ('In elaborare', 'Trimis', 'Acceptat', 'Respins')),   
+	CONSTRAINT fk_deviz_prog FOREIGN KEY (id_programare)
+		REFERENCES PROGRAMARE(id_programare)
+);
+
+CREATE TABLE SERVICIU (
+	id_serviciu NUMBER PRIMARY KEY NOT NULL,
+	nume_serviciu VARCHAR2(50) NOT NULL,
+	tip_masina VARCHAR2(20) NOT NULL
+	CHECK (tip_masina in('Turism','SUV','Autoutilitara')),
+	cost NUMBER(7,2) NOT NULL CHECK (cost > 0)
+);
+
+CREATE TABLE SERVICIU_DEVIZ (
+	id_deviz NUMBER NOT NULL,
+	id_serviciu NUMBER NOT NULL,
+	PRIMARY KEY (id_deviz, id_serviciu),    
+	CONSTRAINT fk_sd_deviz FOREIGN KEY (id_deviz)
+		REFERENCES DEVIZ(id_deviz),
+	CONSTRAINT fk_sd_serviciu FOREIGN KEY (id_serviciu)
+		REFERENCES SERVICIU(id_serviciu)
+);
+
+CREATE TABLE ANGAJATI (
+	id_angajat NUMBER PRIMARY KEY NOT NULL,
+	nume VARCHAR2(30) NOT NULL,
+	prenume VARCHAR2(30) NOT NULL,
+	salariu NUMBER(7,2) NOT NULL CHECK(salariu >=0)
+);
+
+CREATE TABLE MECANIC (
+	id_angajat NUMBER PRIMARY KEY NOT NULL,
+	tip_mecanic VARCHAR2(20) NOT NULL
+	CHECK (tip_mecanic IN     
+	('Mecanic sef', 'Mecanic general', 'Specialist motor', 'Ajutor mecanic')),    
+	CONSTRAINT fk_mecanic_ang FOREIGN KEY (id_angajat)    
+		REFERENCES ANGAJATI(id_angajat));
+
+CREATE TABLE CONTABIL (
+    id_angajat NUMBER PRIMARY KEY NOT NULL,
+    poate_emite_facturi CHAR(1) NOT NULL 
+    CHECK (poate_emite_facturi IN ('T', 'F')),
+    tip_contabil VARCHAR2(20),
+    CONSTRAINT fk_contabil_ang FOREIGN KEY (id_angajat)
+    REFERENCES ANGAJATI(id_angajat)
+);
+
+CREATE TABLE FACTURA (
+    id_factura NUMBER PRIMARY KEY,
+    id_client NUMBER NOT NULL,
+    id_masina NUMBER NOT NULL,
+    id_angajat NUMBER NOT NULL,
+    cost_total NUMBER(10,2) NOT NULL CHECK (cost_total >= 0),
+    data_emitere DATE NOT NULL,
+    data_scadenta DATE NOT NULL,
+    status VARCHAR2(10) NOT NULL CHECK (status IN ('Platita', 'Neplatita')),
+    CONSTRAINT fk_factura_client FOREIGN KEY (id_client)
+        REFERENCES CLIENT(id_client),
+    CONSTRAINT fk_factura_masina FOREIGN KEY (id_masina)
+        REFERENCES MASINA(id_masina),
+    CONSTRAINT fk_factura_angajat FOREIGN KEY (id_angajat)
+        REFERENCES CONTABIL(id_angajat)
+);
+
+CREATE TABLE PROCES_REP (
+    id_proces NUMBER PRIMARY KEY,
+    id_factura NUMBER, 
+    id_deviz NUMBER NOT NULL,
+    CONSTRAINT fk_proces_factura FOREIGN KEY (id_factura)
+        REFERENCES FACTURA(id_factura)
+        ON DELETE SET NULL,
+    CONSTRAINT fk_proces_deviz FOREIGN KEY (id_deviz)
+        REFERENCES DEVIZ(id_deviz)
+);
+
+CREATE TABLE SERVICIU_PROCES (
+    id_proces NUMBER NOT NULL,
+    id_serviciu NUMBER NOT NULL,
+    data_incepere DATE,
+    data_finalizare DATE,
+    status VARCHAR2(20) NOT NULL
+        CHECK (status IN ('Neinceput', 'In lucru', 'Finalizat')),
+    PRIMARY KEY (id_proces, id_serviciu),
+    CONSTRAINT fk_sp_proces FOREIGN KEY (id_proces)
+        REFERENCES PROCES_REP(id_proces),
+    CONSTRAINT fk_sp_serviciu FOREIGN KEY (id_serviciu)
+        REFERENCES SERVICIU(id_serviciu)
+);
+
+CREATE TABLE ANGAJATI_RESPONSABILI (
+    id_angajat NUMBER NOT NULL,
+    id_proces NUMBER NOT NULL,
+    id_serviciu NUMBER NOT NULL,
+    PRIMARY KEY (id_angajat, id_proces, id_serviciu),
+    CONSTRAINT fk_ar_angajat FOREIGN KEY (id_angajat)
+        REFERENCES MECANIC(id_angajat),
+    CONSTRAINT fk_ar_proces_serviciu FOREIGN KEY (id_proces, id_serviciu)
+        REFERENCES SERVICIU_PROCES(id_proces, id_serviciu)
+);
+
+CREATE TABLE FURNIZOR (
+    id_furnizor NUMBER PRIMARY KEY,
+    nume VARCHAR2(50) NOT NULL,
+    procent_reducere NUMBER(3,2) DEFAULT 0.00
+);
+
+CREATE TABLE PIESA (
+    id_piesa NUMBER PRIMARY KEY NOT NULL,
+    id_furnizor NUMBER NOT NULL,
+    denumire VARCHAR2(50) NOT NULL,
+    pret_standard NUMBER(7,2) NOT NULL,
+    FOREIGN KEY (id_furnizor) REFERENCES FURNIZOR(id_furnizor)
+);
+
+CREATE TABLE PIESE_UTILIZATE (
+    id_proces NUMBER NOT NULL,
+    id_serviciu NUMBER NOT NULL,
+    id_piesa NUMBER NOT NULL,
+    data_comanda DATE,
+    data_livrare DATE,
+    PRIMARY KEY (id_proces, id_serviciu, id_piesa),
+    CONSTRAINT fk_pu_serviciu_proces FOREIGN KEY (id_proces, id_serviciu)
+        REFERENCES SERVICIU_PROCES(id_proces, id_serviciu),
+    CONSTRAINT fk_pu_piesa FOREIGN KEY (id_piesa)
+        REFERENCES PIESA(id_piesa)
+);
+
+
+
+
+
+-- INSERAREA IN TABELE
+
+
+
+------- CLIENT
+INSERT INTO CLIENT VALUES (SEQ_CLIENT.NEXTVAL, 'Str. Mihai Eminescu 56', '0789765443', 'andreealte@gmail.com');
+INSERT INTO PERSOANA_JURIDICA VALUES (SEQ_CLIENT.CURRVAL, 'Esprimserv SA', '31447920');
+
+INSERT INTO CLIENT VALUES (SEQ_CLIENT.NEXTVAL, 'Str. Victoriei 10', '0721123456', 'ion_popescu211@gmail.com');
+INSERT INTO PERSOANA_FIZICA VALUES (SEQ_CLIENT.CURRVAL, 'Popescu', 'Ion', '1900101123456');
+
+INSERT INTO CLIENT VALUES (SEQ_CLIENT.NEXTVAL, 'Bd. Unirii 25', '0721223344', 'salubritas@gmail.com');
+INSERT INTO PERSOANA_JURIDICA VALUES (SEQ_CLIENT.CURRVAL, 'SC Salubritas SRL', '12345678');
+
+INSERT INTO CLIENT VALUES (SEQ_CLIENT.NEXTVAL, 'Str. Pacii 7', '0721334455', NULL);
+INSERT INTO PERSOANA_FIZICA VALUES (SEQ_CLIENT.CURRVAL, 'Ionescu', 'Maria', '2900202123456');
+
+INSERT INTO CLIENT VALUES (SEQ_CLIENT.NEXTVAL, 'Str. Libertatii 42', '0721445566', 'hexagonal@gmail.ro');
+INSERT INTO PERSOANA_JURIDICA VALUES (SEQ_CLIENT.CURRVAL, 'SC Hexagonal SRL', '31597910');
+
+INSERT INTO CLIENT VALUES (SEQ_CLIENT.NEXTVAL, 'Str. Mihai Viteazul 3', '0721556677', 'and55@gmail.com');
+INSERT INTO PERSOANA_FIZICA VALUES (SEQ_CLIENT.CURRVAL, 'Vasilescu', 'Andrei', '5900505123456');
+
+INSERT INTO CLIENT VALUES (SEQ_CLIENT.NEXTVAL, 'Sos.Mihai Bravu 290', '0745666556', 'apaserv@gmail.ro');
+INSERT INTO PERSOANA_JURIDICA VALUES (SEQ_CLIENT.CURRVAL, 'Apaserv SA', '31497920');
+
+INSERT INTO CLIENT VALUES (SEQ_CLIENT.NEXTVAL, 'Str. Mihai Viteazul 3', '0721556677', 'and55@gmail.com');
+INSERT INTO PERSOANA_FIZICA VALUES (SEQ_CLIENT.CURRVAL, 'Horhocea', 'Ilinca', '509863433231');
+
+INSERT INTO CLIENT VALUES (SEQ_CLIENT.NEXTVAL, 'Bd. Decebal 100', '0733112233', 'logitrans@gmail.com');
+INSERT INTO PERSOANA_JURIDICA VALUES (SEQ_CLIENT.CURRVAL, 'SC LogiTrans SRL', '44556677');
+
+INSERT INTO CLIENT VALUES (SEQ_CLIENT.NEXTVAL, 'Str. Teilor 15', '0722998877', 'georgescu@yahoo.com');
+INSERT INTO PERSOANA_FIZICA VALUES (SEQ_CLIENT.CURRVAL, 'Georgescu', 'Alexandru', '1850315123456');
+
+
+------- MASINA
+INSERT INTO MASINA VALUES (SEQ_MASINA.NEXTVAL, 1, 'Turism', 'Dacia', 'Logan', 2018, 'B123ABC');
+INSERT INTO MASINA VALUES (SEQ_MASINA.NEXTVAL, 2, 'SUV', 'Ford', 'Kuga', 2020, 'B555XYZ');
+INSERT INTO MASINA VALUES (SEQ_MASINA.NEXTVAL, 3, 'Autoutilitara', 'Renault', 'Master', 2019, 'B999RTX');
+INSERT INTO MASINA VALUES (SEQ_MASINA.NEXTVAL, 3, 'Autoutilitara', 'Renault', 'Master', 2019, 'B999RTY');
+INSERT INTO MASINA VALUES (SEQ_MASINA.NEXTVAL, 3, 'Autoutilitara', 'Renault', 'Master', 2019, 'B999RTZ');
+INSERT INTO MASINA VALUES (SEQ_MASINA.NEXTVAL, 4, 'Turism', 'Volkswagen', 'Golf', 2021, 'B777MNO');
+INSERT INTO MASINA VALUES (SEQ_MASINA.NEXTVAL, 5, 'SUV', 'BMW', 'X5', 2022, 'B888QWE');
+INSERT INTO MASINA VALUES (SEQ_MASINA.NEXTVAL, 6, 'Turism', 'Skoda', 'Fabia', 2018, 'NT77OFB');
+INSERT INTO MASINA VALUES (SEQ_MASINA.NEXTVAL, 7, 'SUV', 'Toyota', 'CHR', 2022, 'BC09ERF');
+INSERT INTO MASINA VALUES (SEQ_MASINA.NEXTVAL, 8, 'Turism', 'Ford', 'Kuga', 2018, 'B090KUG');
+INSERT INTO MASINA VALUES (SEQ_MASINA.NEXTVAL, 9, 'Autoutilitara', 'Mercedes', 'Sprinter', 2021, 'B100LOG');
+INSERT INTO MASINA VALUES (SEQ_MASINA.NEXTVAL, 10, 'Turism', 'Audi', 'A4', 2020, 'NT55GEO');
+
+-------- PROGRAMARE
+INSERT INTO PROGRAMARE VALUES (SEQ_PROGRAMARE.NEXTVAL, 1, 1, TO_TIMESTAMP('2025-05-23 09:00', 'YYYY-MM-DD HH24:MI'));
+INSERT INTO PROGRAMARE VALUES (SEQ_PROGRAMARE.NEXTVAL, 2, 2, TO_TIMESTAMP('2025-05-25 10:30', 'YYYY-MM-DD HH24:MI'));
+INSERT INTO PROGRAMARE VALUES (SEQ_PROGRAMARE.NEXTVAL, 3, 3, TO_TIMESTAMP('2025-05-27 11:00', 'YYYY-MM-DD HH24:MI'));
+INSERT INTO PROGRAMARE VALUES (SEQ_PROGRAMARE.NEXTVAL, 3, 4, TO_TIMESTAMP('2025-05-27 12:00', 'YYYY-MM-DD HH24:MI'));
+INSERT INTO PROGRAMARE VALUES (SEQ_PROGRAMARE.NEXTVAL, 3, 5, TO_TIMESTAMP('2025-05-27 12:30', 'YYYY-MM-DD HH24:MI'));
+INSERT INTO PROGRAMARE VALUES (SEQ_PROGRAMARE.NEXTVAL, 4, 6, TO_TIMESTAMP('2025-05-26 16:00', 'YYYY-MM-DD HH24:MI'));
+INSERT INTO PROGRAMARE VALUES (SEQ_PROGRAMARE.NEXTVAL, 5, 7, TO_TIMESTAMP('2025-05-26 16:00', 'YYYY-MM-DD HH24:MI'));
+INSERT INTO PROGRAMARE VALUES (SEQ_PROGRAMARE.NEXTVAL, 6, 8, TO_TIMESTAMP('2025-05-26 15:30', 'YYYY-MM-DD HH24:MI'));
+INSERT INTO PROGRAMARE VALUES (SEQ_PROGRAMARE.NEXTVAL, 7, 9, TO_TIMESTAMP('2025-05-25 08:20', 'YYYY-MM-DD HH24:MI'));
+INSERT INTO PROGRAMARE VALUES (SEQ_PROGRAMARE.NEXTVAL, 8, 10, TO_TIMESTAMP('2025-05-21 13:45', 'YYYY-MM-DD HH24:MI'));
+INSERT INTO PROGRAMARE VALUES (SEQ_PROGRAMARE.NEXTVAL, 9, 11, TO_TIMESTAMP('2025-05-28 09:30', 'YYYY-MM-DD HH24:MI'));
+INSERT INTO PROGRAMARE VALUES (SEQ_PROGRAMARE.NEXTVAL, 10, 12, TO_TIMESTAMP('2025-05-28 14:00', 'YYYY-MM-DD HH24:MI'));
+
+
+--------- SERVICIU
+INSERT INTO SERVICIU VALUES (SEQ_SERVICIU.NEXTVAL, 'Diagnoza computerizata', 'Turism', 170.00);
+INSERT INTO SERVICIU VALUES (SEQ_SERVICIU.NEXTVAL, 'Diagnoza computerizata', 'SUV', 170.00);
+INSERT INTO SERVICIU VALUES (SEQ_SERVICIU.NEXTVAL, 'Diagnoza computerizata', 'Autoutilitara', 170.00);
+INSERT INTO SERVICIU VALUES (SEQ_SERVICIU.NEXTVAL, 'Constatare', 'Turism', 50.00);
+INSERT INTO SERVICIU VALUES (SEQ_SERVICIU.NEXTVAL, 'Constatare', 'SUV', 50.00);
+INSERT INTO SERVICIU VALUES (SEQ_SERVICIU.NEXTVAL, 'Constatare', 'Autoutilitara', 50.00);
+INSERT INTO SERVICIU VALUES (SEQ_SERVICIU.NEXTVAL, 'Inlocuit ulei si filtre', 'Turism', 160.00);
+INSERT INTO SERVICIU VALUES (SEQ_SERVICIU.NEXTVAL, 'Inlocuit ulei si filtre', 'SUV', 170.00);
+INSERT INTO SERVICIU VALUES (SEQ_SERVICIU.NEXTVAL, 'Inlocuit ulei si filtre', 'Autoutilitara', 180.00);
+INSERT INTO SERVICIU VALUES (SEQ_SERVICIU.NEXTVAL, 'Reglat geometrie roti - punte fata', 'Turism', 170.00);
+INSERT INTO SERVICIU VALUES (SEQ_SERVICIU.NEXTVAL, 'Reglat geometrie roti - punte fata', 'SUV', 180.00);
+INSERT INTO SERVICIU VALUES (SEQ_SERVICIU.NEXTVAL, 'Reglat geometrie roti - punte fata', 'Autoutilitara', 190.00);
+INSERT INTO SERVICIU VALUES (SEQ_SERVICIU.NEXTVAL, 'Reglat geometrie roti - punte fata + spate', 'Turism', 200.00);
+INSERT INTO SERVICIU VALUES (SEQ_SERVICIU.NEXTVAL, 'Reglat geometrie roti - punte fata + spate', 'SUV', 210.00);
+INSERT INTO SERVICIU VALUES (SEQ_SERVICIU.NEXTVAL, 'Reglat geometrie roti - punte fata + spate', 'Autoutilitara', 220.00);
+INSERT INTO SERVICIU VALUES (SEQ_SERVICIU.NEXTVAL, 'Inlocuit refrigerant R134A', 'Turism', 70.00);
+INSERT INTO SERVICIU VALUES (SEQ_SERVICIU.NEXTVAL, 'Inlocuit refrigerant R134A', 'SUV', 70.00);
+INSERT INTO SERVICIU VALUES (SEQ_SERVICIU.NEXTVAL, 'Inlocuit refrigerant R134A', 'Autoutilitara', 70.00);
+INSERT INTO SERVICIU VALUES (SEQ_SERVICIU.NEXTVAL, 'Inlocuit refrigerant R1234YFT', 'Turism', 100.00);
+INSERT INTO SERVICIU VALUES (SEQ_SERVICIU.NEXTVAL, 'Inlocuit refrigerant R1234YFT', 'SUV', 100.00);
+INSERT INTO SERVICIU VALUES (SEQ_SERVICIU.NEXTVAL, 'Inlocuit refrigerant R1234YFT', 'Autoutilitara', 100.00);
+INSERT INTO SERVICIU VALUES (SEQ_SERVICIU.NEXTVAL, 'Manopera accesorii motor', 'Turism', 129.00);
+INSERT INTO SERVICIU VALUES (SEQ_SERVICIU.NEXTVAL, 'Manopera accesorii motor', 'SUV', 129.00);
+INSERT INTO SERVICIU VALUES (SEQ_SERVICIU.NEXTVAL, 'Manopera accesorii motor', 'Autoutilitara', 129.00);
+INSERT INTO SERVICIU VALUES (SEQ_SERVICIU.NEXTVAL, 'Test franare', 'Turism', 65.00);
+INSERT INTO SERVICIU VALUES (SEQ_SERVICIU.NEXTVAL, 'Test franare', 'SUV', 65.00);
+INSERT INTO SERVICIU VALUES (SEQ_SERVICIU.NEXTVAL, 'Test franare', 'Autoutilitara', 65.00);
+INSERT INTO SERVICIU VALUES (SEQ_SERVICIU.NEXTVAL, 'Manopera electric', 'Turism', 190.00);
+INSERT INTO SERVICIU VALUES (SEQ_SERVICIU.NEXTVAL, 'Manopera electric', 'SUV', 190.00);
+INSERT INTO SERVICIU VALUES (SEQ_SERVICIU.NEXTVAL, 'Manopera electric', 'Autoutilitara', 190.00);
+
+
+-------- DEVIZ 
+INSERT INTO DEVIZ VALUES (SEQ_DEVIZ.NEXTVAL, 1, DATE '2025-05-23', 445.00, 'Acceptat');
+INSERT INTO DEVIZ VALUES (SEQ_DEVIZ.NEXTVAL, 2, DATE '2025-05-25', 390.00, 'Acceptat');
+INSERT INTO DEVIZ VALUES (SEQ_DEVIZ.NEXTVAL, 3, DATE '2025-05-27', 570.00, 'Acceptat');
+INSERT INTO DEVIZ VALUES (SEQ_DEVIZ.NEXTVAL, 4, DATE '2025-05-27', 730.00, 'Acceptat');
+INSERT INTO DEVIZ VALUES (SEQ_DEVIZ.NEXTVAL, 5, DATE '2025-05-27', 244.00, 'Trimis');
+INSERT INTO DEVIZ VALUES (SEQ_DEVIZ.NEXTVAL, 6, DATE '2025-05-26', 410.00, 'Trimis');
+INSERT INTO DEVIZ VALUES (SEQ_DEVIZ.NEXTVAL, 7, DATE '2025-05-26', 740.00, 'Trimis');
+INSERT INTO DEVIZ VALUES (SEQ_DEVIZ.NEXTVAL, 8, DATE '2025-05-26', 340.00, 'Trimis');
+INSERT INTO DEVIZ VALUES (SEQ_DEVIZ.NEXTVAL, 9, DATE '2025-05-25', 549.00, 'Trimis');
+INSERT INTO DEVIZ VALUES (SEQ_DEVIZ.NEXTVAL, 10, DATE '2025-05-21', 430.00, 'In elaborare');
+INSERT INTO DEVIZ VALUES (SEQ_DEVIZ.NEXTVAL, 11, DATE '2025-05-28', 400.00, 'Trimis');
+INSERT INTO DEVIZ VALUES (SEQ_DEVIZ.NEXTVAL, 12, DATE '2025-05-28', 380.00, 'Trimis');
+
+
+
+-------- SERVICIU_DEVIZ 
+
+-- deviz 1 (pentru un Turism)
+INSERT INTO SERVICIU_DEVIZ VALUES (1, 1);  -- Diagnoza computerizta 170lei
+INSERT INTO SERVICIU_DEVIZ VALUES (1, 4);  -- Constatare 50lei
+INSERT INTO SERVICIU_DEVIZ VALUES (1, 7);  -- Inlocuit ulei+filtre 160 lei
+INSERT INTO SERVICIU_DEVIZ VALUES (1, 25); -- Test franare 65 lei
+-- Total: 170+50+160+65= 445
+
+-- deviz 2 (pentru SUV)
+INSERT INTO SERVICIU_DEVIZ VALUES (2, 2);  -- Diagnoza computerizata 170 lei
+INSERT INTO SERVICIU_DEVIZ VALUES (2, 5);  -- Constatre 50 lei
+INSERT INTO SERVICIU_DEVIZ VALUES (2, 8);  -- Înlocuit ulei+filtre 170 lei
+-- Totl: 170+50+170 = 390
+
+-- deviz 3 (pentru Autoutilitara)
+INSERT INTO SERVICIU_DEVIZ VALUES (3, 3);  -- Diagnoza computerizata 170 lei
+INSERT INTO SERVICIU_DEVIZ VALUES (3, 9);  -- Inlocuit ulei+ filtre 180lei
+INSERT INTO SERVICIU_DEVIZ VALUES (3, 15); -- Punte fata + spate 220 lei
+-- Total: 170+180+220= 570
+
+-- deviz 4 (pentru o Autoutilitara)
+INSERT INTO SERVICIU_DEVIZ VALUES (4, 3);  -- Diagnoza computerizata 170 lei
+INSERT INTO SERVICIU_DEVIZ VALUES (4, 9);  -- Inlocuit ulei + filtre 180
+INSERT INTO SERVICIU_DEVIZ VALUES (4, 12); -- Reglat geometrie 190
+INSERT INTO SERVICIU_DEVIZ VALUES (4, 30); -- Manopera electric 190
+-- Total: 170+180+190+190= 730 lei
+
+-- deviz 5 (Turism)
+INSERT INTO SERVICIU_DEVIZ VALUES (5, 6);  -- Constatare Autoutilitara 50
+INSERT INTO SERVICIU_DEVIZ VALUES (5, 24); -- Manopera accesorii Autoutilitara 129
+INSERT INTO SERVICIU_DEVIZ VALUES (5, 27);
+
+-- deviz 6 (Turism)
+INSERT INTO SERVICIU_DEVIZ VALUES (6, 7);  -- Înlocuit ulei+filtre 160
+INSERT INTO SERVICIU_DEVIZ VALUES (6, 16); -- R134A 70
+INSERT INTO SERVICIU_DEVIZ VALUES (6, 28); -- Manopera electric 190
+-- Total: 160+70+190=420 
+
+-- Deviz 7 (SUV)
+INSERT INTO SERVICIU_DEVIZ VALUES (7, 2);  -- Diagnoza computerizata 170
+INSERT INTO SERVICIU_DEVIZ VALUES (7, 14); -- Punte fata + spate 210
+INSERT INTO SERVICIU_DEVIZ VALUES (7, 29); -- Manopera electric 190
+INSERT INTO SERVICIU_DEVIZ VALUES (7, 8);  -- Inlocuit ulei+ filtre 170
+-- Total: 170+210+190+170= 740 
+
+-- deviz 8 (Turism)
+INSERT INTO SERVICIU_DEVIZ VALUES (8, 4);  -- Constatare 50
+INSERT INTO SERVICIU_DEVIZ VALUES (8, 10); -- Reglat geometrie 170
+INSERT INTO SERVICIU_DEVIZ VALUES (8, 25); -- Test franare 65
+-- Total: 50+170+65=285 
+
+-- deviz 9 (SUV)
+INSERT INTO SERVICIU_DEVIZ VALUES (9, 5);  -- Constatare 50
+INSERT INTO SERVICIU_DEVIZ VALUES (9, 11); -- Reglat geometrie 180
+INSERT INTO SERVICIU_DEVIZ VALUES (9, 23); -- Manopera accesorii 129
+INSERT INTO SERVICIU_DEVIZ VALUES (9, 29); -- Manopera electric 190
+-- Total: 50+180+129+190=549 
+
+-- deviz 10 (Turism)
+INSERT INTO SERVICIU_DEVIZ VALUES (10, 1);  -- Diagnoza computerizata 170
+INSERT INTO SERVICIU_DEVIZ VALUES (10, 7);  -- Înlocuit ulei+filtre 160
+INSERT INTO SERVICIU_DEVIZ VALUES (10, 19); -- R1234YFT 100
+-- Total: 170+160+100 = 430
+
+INSERT INTO SERVICIU_DEVIZ VALUES (11, 3);  -- Diagnoza computerizata 170
+INSERT INTO SERVICIU_DEVIZ VALUES (11, 9);  -- Inlocuit ulei+filtre 180
+INSERT INTO SERVICIU_DEVIZ VALUES (11, 6);  -- Constatare 50
+
+INSERT INTO SERVICIU_DEVIZ VALUES (12, 1);  -- Diagnoza computerizata 170
+INSERT INTO SERVICIU_DEVIZ VALUES (12, 7);  -- Inlocuit ulei+filtre 160
+INSERT INTO SERVICIU_DEVIZ VALUES (12, 4); 
+
+
+-------- PROCES_REP 
+-- Am autormatizat inserarea proceselor de reparatie 
+-- in functie de devizele care au fost acceptate de clienti 
+
+-- inserez procese pentru devizele acceptate
+INSERT INTO PROCES_REP (id_proces, id_deviz)
+SELECT SEQ_PROCES_REP.NEXTVAL, id_deviz
+  FROM DEVIZ
+ WHERE status = 'Acceptat';
+
+
+-------- SERVICIU_PROCES 
+-- inserare serviciile corespunzatoare fiecarui proces
+INSERT INTO SERVICIU_PROCES (
+    id_proces,
+    id_serviciu,
+    data_incepere,
+    data_finalizare,
+    status
+)
+SELECT
+    p.id_proces,
+    sd.id_serviciu,
+    NULL, NULL, 'Neinceput'
+FROM
+    PROCES_REP p
+    JOIN SERVICIU_DEVIZ sd ON p.id_deviz = sd.id_deviz
+    JOIN DEVIZ d ON p.id_deviz = d.id_deviz
+WHERE
+    d.status = 'Acceptat';
+
+--- + ca sa avem un nr de servicii diferit fata de cel din deviz, mai adaugam acum cateva:
+
+--"Reglat geometrie roti - punte fata + spate" (id= 13) la procesul 1
+INSERT INTO SERVICIU_PROCES (id_proces, id_serviciu, data_incepere, data_finalizare, status)
+VALUES (1, 13, NULL, NULL, 'Neinceput');
+
+--"Manopera electric" (id=28) la procesul 2
+INSERT INTO SERVICIU_PROCES (id_proces, id_serviciu, data_incepere, data_finalizare, status)
+VALUES (2, 28, NULL, NULL, 'Neinceput');
+
+--"Inlocuit refrigerant R1234YFT" (id= 19) la procesul 3
+INSERT INTO SERVICIU_PROCES (id_proces, id_serviciu, data_incepere, data_finalizare, status)
+VALUES (3, 19, NULL, NULL, 'Neinceput');
+
+
+------- FURNIZOR
+INSERT INTO FURNIZOR (id_furnizor, nume, procent_reducere) VALUES (SEQ_FURNIZOR.NEXTVAL, 'Ravenol', 0.10);
+INSERT INTO FURNIZOR (id_furnizor, nume, procent_reducere) VALUES (SEQ_FURNIZOR.NEXTVAL, 'Conex', 0.10);
+INSERT INTO FURNIZOR (id_furnizor, nume, procent_reducere) VALUES (SEQ_FURNIZOR.NEXTVAL, 'Elit', 0.15);
+INSERT INTO FURNIZOR (id_furnizor, nume, procent_reducere) VALUES (SEQ_FURNIZOR.NEXTVAL, 'Autototal', 0.10);
+INSERT INTO FURNIZOR (id_furnizor, nume, procent_reducere) VALUES (SEQ_FURNIZOR.NEXTVAL, 'Autonet', 0.00);
+INSERT INTO FURNIZOR (id_furnizor, nume, procent_reducere) VALUES (SEQ_FURNIZOR.NEXTVAL, 'Bardi', 0.00);
+
+
+------- PIESA
+
+--Ravenol(uleiuri,filtre)
+INSERT INTO PIESA VALUES (SEQ_PIESA.NEXTVAL, 1, 'Ulei motor 5W40', 120.00);
+INSERT INTO PIESA VALUES (SEQ_PIESA.NEXTVAL, 1, 'Ulei motor 5W30', 110.00);
+INSERT INTO PIESA VALUES (SEQ_PIESA.NEXTVAL, 1, 'Filtru ulei', 35.00);
+INSERT INTO PIESA VALUES (SEQ_PIESA.NEXTVAL, 1, 'Filtru aer', 40.00);
+INSERT INTO PIESA VALUES (SEQ_PIESA.NEXTVAL, 1, 'Filtru combustibil', 65.00);
+
+--Conex(accesorii motor)
+INSERT INTO PIESA VALUES (SEQ_PIESA.NEXTVAL, 2, 'Filtru habitaclu', 30.00);
+INSERT INTO PIESA VALUES (SEQ_PIESA.NEXTVAL, 2, 'Curea accesorii', 85.00);
+INSERT INTO PIESA VALUES (SEQ_PIESA.NEXTVAL, 2, 'Rola intinzatoare', 70.00);
+INSERT INTO PIESA VALUES (SEQ_PIESA.NEXTVAL, 2, 'Bujii', 60.00);
+INSERT INTO PIESA VALUES (SEQ_PIESA.NEXTVAL, 2, 'Senzor temperatura', 55.00);
+
+--Elit(frâne,electric)
+INSERT INTO PIESA VALUES (SEQ_PIESA.NEXTVAL, 3, 'Placute frana fata', 150.00);
+INSERT INTO PIESA VALUES (SEQ_PIESA.NEXTVAL, 3, 'Placute frana spate', 145.00);
+INSERT INTO PIESA VALUES (SEQ_PIESA.NEXTVAL, 3, 'Disc frana fata', 200.00);
+INSERT INTO PIESA VALUES (SEQ_PIESA.NEXTVAL, 3, 'Disc frana spate', 190.00);
+INSERT INTO PIESA VALUES (SEQ_PIESA.NEXTVAL, 3, 'Senzor ABS', 110.00);
+
+-- Autototal(refrigerant,piese AC)
+INSERT INTO PIESA VALUES (SEQ_PIESA.NEXTVAL, 4, 'Refrigerant R134A', 90.00);
+INSERT INTO PIESA VALUES (SEQ_PIESA.NEXTVAL, 4, 'Refrigerant R1234YFT', 160.00);
+INSERT INTO PIESA VALUES (SEQ_PIESA.NEXTVAL, 4, 'Compresor AC', 800.00);
+INSERT INTO PIESA VALUES (SEQ_PIESA.NEXTVAL, 4, 'Filtru uscator AC', 120.00);
+INSERT INTO PIESA VALUES (SEQ_PIESA.NEXTVAL, 4, 'Curea AC', 60.00);
+
+-- Autonet(suspensie,geometrie,electric)
+INSERT INTO PIESA VALUES (SEQ_PIESA.NEXTVAL, 5, 'Pivot suspensie', 75.00);
+INSERT INTO PIESA VALUES (SEQ_PIESA.NEXTVAL, 5, 'Bieleta antiruliu', 55.00);
+INSERT INTO PIESA VALUES (SEQ_PIESA.NEXTVAL, 5, 'Cap bara directie', 65.00);
+INSERT INTO PIESA VALUES (SEQ_PIESA.NEXTVAL, 5, 'Senzor presiune roti', 95.00);
+INSERT INTO PIESA VALUES (SEQ_PIESA.NEXTVAL, 5, 'Baterie auto', 350.00);
+
+-- Bardi (electric)
+INSERT INTO PIESA VALUES (SEQ_PIESA.NEXTVAL, 6, 'Bec far', 30.00);
+INSERT INTO PIESA VALUES (SEQ_PIESA.NEXTVAL, 6, 'Alternator', 900.00);
+INSERT INTO PIESA VALUES (SEQ_PIESA.NEXTVAL, 6, 'Demaror', 700.00);
+INSERT INTO PIESA VALUES (SEQ_PIESA.NEXTVAL, 6, 'Pompa apa', 250.00);
+INSERT INTO PIESA VALUES (SEQ_PIESA.NEXTVAL, 6, 'Sonda lambda', 220.00);
+
+
+----- PIESE UTILIZATE
+
+--  Am cautat o metoda eficienta de a lega piesele utilizate 
+-- intr-o anumita operatiune din cadrul unui proces,
+--- în functie de necesitatea ei in acel serviciu. 
+INSERT INTO PIESE_UTILIZATE (id_proces, id_serviciu, id_piesa, data_comanda, data_livrare)
+SELECT sp.id_proces, sp.id_serviciu, p.id_piesa, NULL, NULL
+FROM SERVICIU_PROCES sp
+JOIN SERVICIU s ON sp.id_serviciu = s.id_serviciu
+JOIN PIESA p ON (
+    (s.nume_serviciu = 'Inlocuit ulei si filtre' AND p.denumire IN (
+        'Ulei motor 5W40', 'Filtru ulei', 'Filtru aer'
+    ))
+    OR
+    (s.nume_serviciu = 'Manopera accesorii motor' AND p.denumire IN (
+        'Senzor temperatura', 'Pompa apa'
+    ))
+    OR
+    (s.nume_serviciu LIKE 'Inlocuit refrigerant%' AND p.denumire IN (
+        'Refrigerant R134A'
+    ))
+    OR
+    (s.nume_serviciu = 'Manopera electric' AND p.denumire IN (
+        'Baterie auto', 'Bec far'
+    ))
+)
+WHERE NOT EXISTS (
+    SELECT 1 FROM PIESE_UTILIZATE pu
+    WHERE pu.id_proces = sp.id_proces
+      AND pu.id_serviciu = sp.id_serviciu
+      AND pu.id_piesa = p.id_piesa
+);
+
+
+------- ANGAJATI
+
+-- CONTABILI
+INSERT INTO ANGAJATI VALUES (SEQ_ANGAJATI.NEXTVAL, 'Plesca', 'Petronela', 3900.00);
+INSERT INTO CONTABIL VALUES (SEQ_ANGAJATI.CURRVAL, 'T', 'Senior');
+
+INSERT INTO ANGAJATI VALUES (SEQ_ANGAJATI.NEXTVAL, 'Petrache', 'Irina', 2000.00);
+INSERT INTO CONTABIL VALUES (SEQ_ANGAJATI.CURRVAL, 'F', 'Junior');
+
+INSERT INTO ANGAJATI VALUES (SEQ_ANGAJATI.NEXTVAL, 'Dobrea', 'Dominic', 3600.00);
+INSERT INTO CONTABIL VALUES (SEQ_ANGAJATI.CURRVAL, 'T', 'Senior');
+
+INSERT INTO ANGAJATI VALUES (SEQ_ANGAJATI.NEXTVAL, 'Rusu', 'Bianca', 1500.00);
+INSERT INTO CONTABIL VALUES (SEQ_ANGAJATI.CURRVAL, 'F', 'Junior');
+
+INSERT INTO ANGAJATI VALUES (SEQ_ANGAJATI.NEXTVAL, 'Minut', 'Cristian', 2900.00);
+INSERT INTO CONTABIL VALUES (SEQ_ANGAJATI.CURRVAL, 'T', 'Senior');
+
+-- MECANICI
+
+INSERT INTO ANGAJATI VALUES (SEQ_ANGAJATI.NEXTVAL, 'Cozma', 'Vasile', 5800.00);
+INSERT INTO MECANIC VALUES (SEQ_ANGAJATI.CURRVAL, 'Mecanic sef');
+
+INSERT INTO ANGAJATI VALUES (SEQ_ANGAJATI.NEXTVAL, 'Stanescu', 'Stefan', 4700.00);
+INSERT INTO MECANIC VALUES (SEQ_ANGAJATI.CURRVAL, 'Mecanic sef');
+
+INSERT INTO ANGAJATI VALUES (SEQ_ANGAJATI.NEXTVAL, 'Ion', 'Paul', 4100.00);
+INSERT INTO MECANIC VALUES (SEQ_ANGAJATI.CURRVAL, 'Mecanic general');
+
+INSERT INTO ANGAJATI VALUES (SEQ_ANGAJATI.NEXTVAL, 'Cozma', 'Matei', 4000.00);
+INSERT INTO MECANIC VALUES (SEQ_ANGAJATI.CURRVAL, 'Mecanic general');
+
+INSERT INTO ANGAJATI VALUES (SEQ_ANGAJATI.NEXTVAL, 'Lupu', 'Florin', 4050.00);
+INSERT INTO MECANIC VALUES (SEQ_ANGAJATI.CURRVAL, 'Mecanic general');
+
+INSERT INTO ANGAJATI VALUES (SEQ_ANGAJATI.NEXTVAL, 'Mihai', 'Valentin', 4300.00);
+INSERT INTO MECANIC VALUES (SEQ_ANGAJATI.CURRVAL, 'Specialist motor');
+
+INSERT INTO ANGAJATI VALUES (SEQ_ANGAJATI.NEXTVAL, 'Gherghe', 'Mihai', 4350.00);
+INSERT INTO MECANIC VALUES (SEQ_ANGAJATI.CURRVAL, 'Specialist motor');
+
+INSERT INTO ANGAJATI VALUES (SEQ_ANGAJATI.NEXTVAL, 'Astanei', 'Andrei', 2000.00);
+INSERT INTO MECANIC VALUES (SEQ_ANGAJATI.CURRVAL, 'Ajutor mecanic');
+
+INSERT INTO ANGAJATI VALUES (SEQ_ANGAJATI.NEXTVAL, 'Irimia', 'Dragos', 2000.00);
+INSERT INTO MECANIC VALUES (SEQ_ANGAJATI.CURRVAL, 'Ajutor mecanic');
+
+INSERT INTO ANGAJATI VALUES (SEQ_ANGAJATI.NEXTVAL, 'Diaconu', 'Petru', 2000.00);
+INSERT INTO MECANIC VALUES (SEQ_ANGAJATI.CURRVAL, 'Ajutor mecanic');
+
+
+---- ANGAJATI_RESPONSABILI
+-- asociem automat mecanicii la servicii_proces, echitabil, alfabetic (round-robin)
+INSERT INTO ANGAJATI_RESPONSABILI (id_angajat, id_proces, id_serviciu)
+WITH
+--1.identificăm pentru fiecare serviciu_proces, tippul de mecanic necesar
+SP_TIP AS (
+  SELECT
+    sp.id_proces,
+    sp.id_serviciu,
+    CASE
+      WHEN s.nume_serviciu LIKE 'Inlocuit ulei si filtre%' THEN 'Mecanic general'
+      WHEN s.nume_serviciu LIKE 'Manopera accesorii motor%' THEN 'Mecanic general'
+      WHEN s.nume_serviciu LIKE 'Reglat geometrie roti%' THEN 'Mecanic general'
+      WHEN s.nume_serviciu LIKE 'Test franare%' THEN 'Mecanic general'
+      WHEN s.nume_serviciu LIKE 'Inlocuit refrigerant%' THEN 'Specialist motor'
+      WHEN s.nume_serviciu LIKE 'Diagnoza computerizata%' THEN 'Mecanic sef'
+    END AS tip_mecanic
+  FROM SERVICIU_PROCES sp
+  JOIN SERVICIU s ON sp.id_serviciu = s.id_serviciu
+),
+
+-- 2. listez mecnicii disponibili pentru fiecare tip, ordonaTi alfabetic
+MECANICI_ORD AS (
+  SELECT
+    m.id_angajat,
+    m.tip_mecanic,
+    a.nume,
+    a.prenume,
+    ROW_NUMBER() OVER (PARTITION BY m.tip_mecanic ORDER BY a.nume, a.prenume) AS rn,
+    COUNT(*) OVER (PARTITION BY m.tip_mecanic) AS total_mec
+  FROM MECANIC m
+  JOIN ANGAJATI a ON m.id_angajat = a.id_angajat
+),
+
+-- 3.asociem fiecarui serviciu_proces un index( pentru round-robin)
+SP_INDEX AS (
+  SELECT
+    st.*,
+    ROW_NUMBER() OVER (PARTITION BY st.tip_mecanic ORDER BY st.id_proces, st.id_serviciu) AS idx
+  FROM SP_TIP st
+)
+
+-- 4.alocam mecanicul corespunzător fiecărui serviciu_proces
+--fac atribuirea pe rad: primul serviciu ia primul mecanic, 
+-- al doilea serviciu ia al doilea mecanic etc 
+-- iar dacă sunt mai multe servicii decat mecanici,
+-- se reia de la început (round-robin).
+
+--asa, toti mecanicii dintr-o categorie vor primi 
+-- un număr cât mai apropiat de lucrari, fara ca vreunul să fie supraincărcat.
+
+
+SELECT
+  mo.id_angajat,
+  si.id_proces,
+  si.id_serviciu
+FROM SP_INDEX si
+JOIN MECANICI_ORD mo
+  ON mo.tip_mecanic = si.tip_mecanic
+  AND mo.rn = MOD(si.idx - 1, mo.total_mec) + 1
+WHERE NOT EXISTS (
+    SELECT 1 FROM ANGAJATI_RESPONSABILI ar
+    WHERE ar.id_proces = si.id_proces AND ar.id_serviciu = si.id_serviciu
+);
+
+
+
+-- Vreau ca toate procesele sa aiba statusul 'Finalizat', ca sa le pot genera facturi.
+UPDATE SERVICIU_PROCES sp
+SET status = 'Finalizat',
+    data_incepere = (
+        SELECT d.data_eliberarii
+        FROM PROCES_REP p
+        JOIN DEVIZ d ON p.id_deviz = d.id_deviz
+        WHERE p.id_proces = sp.id_proces
+    ),
+    data_finalizare = (
+        SELECT d.data_eliberarii + INTERVAL '2' DAY
+        FROM PROCES_REP p
+        JOIN DEVIZ d ON p.id_deviz = d.id_deviz
+        WHERE p.id_proces = sp.id_proces
+    );
+
+
+
+-- Pentru a putea avea 5 inregistrari in Factura, schimbam status-ul devizului 5 ca fiind aprobat, 
+--ii generam un proces, adaugam serviciile aferente si adaugam piesele necesare.
+
+UPDATE DEVIZ
+SET status = 'Acceptat'
+WHERE id_deviz = 5;
+
+INSERT INTO PROCES_REP (id_proces, id_deviz) VALUES (5,5);
+
+INSERT INTO SERVICIU_PROCES (
+    id_proces,
+    id_serviciu,
+    data_incepere,
+    data_finalizare,
+    status
+)
+SELECT
+    p.id_proces,
+    sd.id_serviciu,
+    SYSDATE-3, SYSDATE-2, 'Finalizat'
+FROM
+    PROCES_REP p
+    JOIN SERVICIU_DEVIZ sd ON p.id_deviz = sd.id_deviz
+    JOIN DEVIZ d ON p.id_deviz = d.id_deviz
+WHERE
+    p.id_proces=5;
+
+INSERT INTO PIESE_UTILIZATE (id_proces, id_serviciu, id_piesa, data_comanda, data_livrare)
+SELECT sp.id_proces, sp.id_serviciu, p.id_piesa, NULL, NULL
+FROM SERVICIU_PROCES sp
+JOIN SERVICIU s ON sp.id_serviciu = s.id_serviciu
+JOIN PIESA p ON (
+    (s.nume_serviciu = 'Inlocuit ulei si filtre' AND p.denumire IN (
+        'Ulei motor 5W40', 'Filtru ulei', 'Filtru aer'
+    ))
+    OR
+    (s.nume_serviciu = 'Manopera accesorii motor' AND p.denumire IN (
+        'Senzor temperatura', 'Pompa apa'
+    ))
+    OR
+    (s.nume_serviciu LIKE 'Inlocuit refrigerant%' AND p.denumire IN (
+        'Refrigerant R134A'
+    ))
+    OR
+    (s.nume_serviciu = 'Manopera electric' AND p.denumire IN (
+        'Baterie auto', 'Bec far'
+    ))
+)
+WHERE sp.ID_PROCES = 5;
+
+INSERT INTO ANGAJATI_RESPONSABILI (id_angajat, id_proces, id_serviciu)
+SELECT
+    10,             
+    sp.id_proces,
+    sp.id_serviciu
+FROM
+    SERVICIU_PROCES sp
+WHERE
+    sp.id_proces = 5
+    AND NOT EXISTS (
+        SELECT 1 FROM ANGAJATI_RESPONSABILI ar
+        WHERE ar.id_proces = sp.id_proces
+          AND ar.id_serviciu = sp.id_serviciu
+    );
+
+
+----- FACTURA
+INSERT INTO FACTURA (
+    id_factura,
+    id_client,
+    id_masina,
+    id_angajat,
+    cost_total,
+    data_emitere,
+    data_scadenta,
+    status
+)
+SELECT
+   SEQ_FACTURA.NEXTVAL,
+    c.id_client,
+    m.id_masina,
+    (SELECT ca.id_angajat
+       FROM CONTABIL ca
+      WHERE ca.poate_emite_facturi = 'T'
+        AND ROWNUM = 1),
+    NVL(
+        (SELECT SUM(s.cost)
+           FROM SERVICIU_PROCES sp
+           JOIN SERVICIU s ON sp.id_serviciu = s.id_serviciu
+          WHERE sp.id_proces = pr.id_proces),
+        0
+    )
+    +
+    NVL(
+        (SELECT SUM(p.pret_standard * (1 - NVL(f.procent_reducere, 0)))
+           FROM PIESE_UTILIZATE pu
+           JOIN PIESA p ON pu.id_piesa = p.id_piesa
+           JOIN FURNIZOR f ON p.id_furnizor = f.id_furnizor
+          WHERE pu.id_proces = pr.id_proces),
+        0
+    ),
+    SYSDATE,
+    CASE
+        WHEN pf.id_client IS NOT NULL THEN SYSDATE + 7
+        WHEN pj.id_client IS NOT NULL THEN SYSDATE + 30
+        ELSE SYSDATE + 7
+    END,
+    'Neplatita'
+FROM PROCES_REP pr
+JOIN DEVIZ d ON pr.id_deviz = d.id_deviz
+JOIN PROGRAMARE p ON d.id_programare = p.id_programare
+JOIN MASINA m ON p.id_masina = m.id_masina
+JOIN CLIENT c ON m.id_client = c.id_client
+LEFT JOIN PERSOANA_FIZICA pf ON c.id_client = pf.id_client
+LEFT JOIN PERSOANA_JURIDICA pj ON c.id_client = pj.id_client
+WHERE NOT EXISTS (
+    SELECT 1
+      FROM SERVICIU_PROCES sp
+     WHERE sp.id_proces = pr.id_proces
+       AND sp.status <> 'Finalizat'
+);
+

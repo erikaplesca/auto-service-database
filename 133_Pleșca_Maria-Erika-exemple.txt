@@ -1,0 +1,357 @@
+
+---------------- 12. Implementarea a 5 cereri SQL complexe
+
+
+--- CEREREA 1
+-- subcerere sincronizată în care intervin cel puțin 3 tabele
+
+--	Să se afișeze numele și prenumele mecanicilor 
+--care au lucrat la mașini de tip 'Turism' deținute de 
+--persoane fizice și care au fost responsabili de un 
+--număr de reparații mai mare decât media numărului 
+--de reparații per mecanic din tot service-ul.
+
+
+SELECT DISTINCT a.nume, a.prenume, m.tip_mecanic
+FROM ANGAJATI a
+JOIN MECANIC m ON a.id_angajat = m.id_angajat
+WHERE EXISTS (
+    SELECT 1
+    FROM ANGAJATI_RESPONSABILI ar
+    JOIN SERVICIU_PROCES sp ON ar.id_proces = sp.id_proces AND ar.id_serviciu = sp.id_serviciu
+    JOIN PROCES_REP pr ON sp.id_proces = pr.id_proces
+    JOIN DEVIZ d ON pr.id_deviz = d.id_deviz
+    JOIN PROGRAMARE p ON d.id_programare = p.id_programare
+    JOIN MASINA ma ON p.id_masina = ma.id_masina
+    JOIN CLIENT c ON ma.id_client = c.id_client
+    JOIN PERSOANA_FIZICA pf ON c.id_client = pf.id_client
+    WHERE ar.id_angajat = a.id_angajat
+      AND ma.tip_masina = 'Turism'
+      AND (
+          SELECT COUNT(*)
+          FROM ANGAJATI_RESPONSABILI ar2
+          WHERE ar2.id_angajat = a.id_angajat
+      ) > (
+          SELECT AVG(COUNT(*))
+          FROM ANGAJATI_RESPONSABILI ar3
+          GROUP BY ar3.id_angajat
+      )
+);
+
+
+----- CEREREA 2
+--﻿subcereri nesincronizate în clauza FROM
+
+--Să se afișeze pentru fiecare tip de piesă care a fost 
+--folosită mai des decât media tuturor utilizărilor per 
+--piesă în service, numărul total de utilizări și 
+--suma totală a vânzărilor generate.
+
+SELECT
+    p.denumire AS piesa,
+    stats.nr_folosiri,
+    stats.total_vanzari
+FROM
+    (
+     SELECT
+            pu.id_piesa,
+            COUNT(*) AS nr_folosiri,
+            SUM(ps.pret_standard) AS total_vanzari
+        FROM PIESE_UTILIZATE pu
+        JOIN PIESA ps ON pu.id_piesa = ps.id_piesa
+        GROUP BY pu.id_piesa, ps.denumire
+    ) stats
+    JOIN PIESA p ON stats.id_piesa = p.id_piesa,
+    (
+        SELECT AVG(cnt) AS media_folosiri
+        FROM (
+            SELECT COUNT(*) AS cnt
+            FROM PIESE_UTILIZATE
+            GROUP BY id_piesa
+        )
+    ) media
+WHERE stats.nr_folosiri > media.media_folosiri
+ORDER BY stats.nr_folosiri DESC, p.denumire;
+
+
+-- CEREREA 3
+-- utilizarea a cel putin 1 bloc de cerere (clauza WITH)
+
+--Să se afișeaze, pentru fiecare serviciu care nu a necesitat 
+--nicio piesă în niciun proces de reparație, de câte ori a fost
+--efectuat în service (număr total de apariții), ordonat descrescător
+--după frecvență.
+
+WITH servicii_fara_piese AS (
+    SELECT
+        sp.id_serviciu
+    FROM SERVICIU_PROCES sp
+    LEFT JOIN PIESE_UTILIZATE pu
+      ON sp.id_proces = pu.id_proces AND sp.id_serviciu = pu.id_serviciu
+    WHERE pu.id_piesa IS NULL
+    GROUP BY sp.id_serviciu
+)
+SELECT
+    s.nume_serviciu,
+    COUNT(sp.id_serviciu) AS nr_aparitii
+FROM SERVICIU_PROCES sp
+JOIN servicii_fara_piese sfp ON sp.id_serviciu = sfp.id_serviciu
+JOIN SERVICIU s ON sp.id_serviciu = s.id_serviciu
+GROUP BY s.nume_serviciu
+ORDER BY nr_aparitii DESC, s.nume_serviciu;
+
+
+
+-- CEREREA 4
+-- filtrare la nivel de grupuri cu subcereri nesincronizate (in clauza de HAVING) 
+-- în care intervin cel putin 3 tabele (in cadrul aceleiasi cereri)
+-- ordonãri si utilizarea functiilor NVL si DECODE (în cadrul aceleiasi cereri)
+
+--Să se afișeze lista clienților care au avut, în total, 
+--comenzi de piese cu valoare mai mare decât valoarea medie 
+--a pieselor comandate de toți clienții, 
+--arătând pentru fiecare client: numele, tipul (persoană fizică/juridică, cu DECODE),
+-- numărul de mașini deținute (cu NVL pentru clienții fără mașini), suma totală a 
+-- pieselor comandate și ordonând rezultatul descrescător după această sumă.
+
+SELECT
+    c.id_client,
+    DECODE(
+        NVL(pf.id_client, 0),
+        0, 'Persoana Juridica',
+        'Persoana Fizica'
+    ) AS tip_client,
+    NVL(COUNT(DISTINCT m.id_masina), 0) AS nr_masini,
+    SUM(NVL(p.pret_standard, 0)) AS total_piese
+FROM CLIENT c
+LEFT JOIN MASINA m ON c.id_client = m.id_client
+LEFT JOIN PROGRAMARE prog ON m.id_masina = prog.id_masina
+LEFT JOIN DEVIZ d ON prog.id_programare = d.id_programare
+LEFT JOIN PROCES_REP pr ON d.id_deviz = pr.id_deviz
+LEFT JOIN PIESE_UTILIZATE pu ON pr.id_proces = pu.id_proces
+LEFT JOIN PIESA p ON pu.id_piesa = p.id_piesa
+LEFT JOIN PERSOANA_FIZICA pf ON c.id_client = pf.id_client
+LEFT JOIN PERSOANA_JURIDICA pj ON c.id_client = pj.id_client
+GROUP BY c.id_client, pf.id_client
+HAVING SUM(NVL(p.pret_standard, 0)) > (
+    SELECT AVG(val_total)
+    FROM (
+        SELECT SUM(NVL(p2.pret_standard, 0)) AS val_total
+        FROM CLIENT c2
+        LEFT JOIN MASINA m2 ON c2.id_client = m2.id_client
+        LEFT JOIN PROGRAMARE prog2 ON m2.id_masina = prog2.id_masina
+        LEFT JOIN DEVIZ d2 ON prog2.id_programare = d2.id_programare
+        LEFT JOIN PROCES_REP pr2 ON d2.id_deviz = pr2.id_deviz
+        LEFT JOIN PIESE_UTILIZATE pu2 ON pr2.id_proces = pu2.id_proces
+        LEFT JOIN PIESA p2 ON pu2.id_piesa = p2.id_piesa
+        GROUP BY c2.id_client
+    )
+)
+ORDER BY total_piese DESC, c.id_client;
+
+
+
+----- CEREREA 5
+--utilizarea a cel putin 2 functii pe siruri de caractere, 2 functii pe date calendaristice, a cel putin unei expresii CASE
+
+--Să se afișeze, pentru fiecare serviciu finalizat în ultimele 60 de zile, 
+--numele complet al mecanicului responsabil (cu majuscule și cu spații eliminate 
+--la început și sfârșit), data calendaristică a începerii și finalizării serviciului 
+--(doar partea de zi, nu si ora), numărul de zile lucrate la acel serviciu 
+--(diferența dintre data finalizării și data începerii), și un câmp care să indice,
+--printr-o expresie CASE, dacă serviciul a fost finalizat în termen de maximum 3 zile ("Rapid"), 
+--între 4 și 7 zile ("Normal"), sau peste 7 zile ("Întârziat").
+
+SELECT
+    -- Două funcții pe șiruri de caractere
+    UPPER(TRIM(a.nume || ' ' || a.prenume)) AS mecanic_complet,
+    -- Două funcții pe date calendaristice
+    TRUNC(sp.data_incepere) AS zi_incepere,
+    TRUNC(sp.data_finalizare) AS zi_finalizare,
+    TRUNC(sp.data_finalizare) - TRUNC(sp.data_incepere) AS zile_lucrate,
+    -- Expresie CASE
+    CASE
+        WHEN TRUNC(sp.data_finalizare) - TRUNC(sp.data_incepere) <= 3 THEN 'Rapid'
+        WHEN TRUNC(sp.data_finalizare) - TRUNC(sp.data_incepere) BETWEEN 4 AND 7 THEN 'Normal'
+        ELSE 'Întârziat'
+    END AS status_termen
+FROM SERVICIU_PROCES sp
+JOIN ANGAJATI_RESPONSABILI ar ON sp.id_proces = ar.id_proces AND sp.id_serviciu = ar.id_serviciu
+JOIN ANGAJATI a ON ar.id_angajat = a.id_angajat
+WHERE sp.status = 'Finalizat'
+  AND sp.data_finalizare >= TRUNC(SYSDATE) - 60
+ORDER BY sp.data_finalizare DESC;
+
+
+
+---------------- 13. Implementarea a 3 operații de actualizare și de suprimare a datelor utilizând subcereri.
+
+
+--- Operațiunea 1
+-- Mărim salariul cu 10% pentru mecanicii implicați în mai mult de 2 procese de reparație.
+UPDATE ANGAJATI a
+SET salariu = salariu * 1.10
+WHERE id_angajat IN (
+    SELECT ar.id_angajat
+    FROM ANGAJATI_RESPONSABILI ar
+    GROUP BY ar.id_angajat
+    HAVING COUNT(DISTINCT ar.id_proces) > 2
+);
+
+
+--- Operațiunea 2
+-- Schimbăm statusul devizelor trimise către persoane juridice înapoi la "In elaborare".
+
+UPDATE DEVIZ d
+SET status = 'In elaborare'
+WHERE d.status = 'Trimis'
+  AND EXISTS (
+      SELECT 1
+      FROM PROGRAMARE p
+      JOIN MASINA m ON p.id_masina = m.id_masina
+      JOIN CLIENT c ON m.id_client = c.id_client
+      JOIN PERSOANA_JURIDICA pj ON c.id_client = pj.id_client
+      WHERE p.id_programare = d.id_programare
+  );
+
+
+--- Operațiunea 3
+-- Eliminarea din stoc a pieselor care au fost folosite la servicii cu cost sub medie.
+
+DELETE FROM PIESE_UTILIZATE pu
+WHERE EXISTS (
+    SELECT 1
+    FROM SERVICIU_PROCES sp
+    JOIN SERVICIU s ON sp.id_serviciu = s.id_serviciu
+    WHERE sp.id_proces = pu.id_proces
+      AND sp.id_serviciu = pu.id_serviciu
+      AND s.cost < (
+          SELECT AVG(cost)
+          FROM SERVICIU
+      )
+);
+
+
+---------------- 14. Crearea unei vizualizări complexe.
+
+CREATE OR REPLACE VIEW v_client_masini_piese AS
+SELECT
+    c.id_client,
+    NVL(pf.nume, pj.denumire) AS nume_client,
+    m.nr_inmatriculare,
+    SUM(NVL(p.pret_standard, 0)) AS total_piese
+FROM CLIENT c
+LEFT JOIN PERSOANA_FIZICA pf ON c.id_client = pf.id_client
+LEFT JOIN PERSOANA_JURIDICA pj ON c.id_client = pj.id_client
+LEFT JOIN MASINA m ON c.id_client = m.id_client
+LEFT JOIN PROGRAMARE prog ON m.id_masina = prog.id_masina
+LEFT JOIN DEVIZ d ON prog.id_programare = d.id_programare
+LEFT JOIN PROCES_REP pr ON d.id_deviz = pr.id_deviz
+LEFT JOIN PIESE_UTILIZATE pu ON pr.id_proces = pu.id_proces
+LEFT JOIN PIESA p ON pu.id_piesa = p.id_piesa
+GROUP BY c.id_client, NVL(pf.nume, pj.denumire), m.nr_inmatriculare;
+
+
+-- Operatiune LMD permisa
+SELECT * FROM v_client_masini_piese WHERE total_piese > 500;
+
+-- Operatiune LMD nepermisa
+--UPDATE v_client_masini_piese
+--SET total_piese = 1000
+--WHERE id_client = 1;
+
+
+SELECT DISTINCT
+    m.nr_inmatriculare,
+    s.nume_serviciu,
+    s.cost
+FROM PROCES_REP pr
+LEFT JOIN SERVICIU_PROCES sp ON pr.id_proces = sp.id_proces
+LEFT JOIN SERVICIU s ON sp.id_serviciu = s.id_serviciu
+LEFT JOIN DEVIZ d ON pr.id_deviz = d.id_deviz
+LEFT JOIN PROGRAMARE p ON d.id_programare = p.id_programare
+LEFT JOIN MASINA m ON p.id_masina = m.id_masina
+WHERE NOT EXISTS (
+      SELECT 1 FROM PIESE_UTILIZATE pu
+      WHERE pu.id_proces = sp.id_proces
+        AND pu.id_serviciu = sp.id_serviciu
+)
+ORDER BY m.nr_inmatriculare, s.nume_serviciu;
+
+
+---------------- 15. 
+
+------- O cerere ce utilizează operația outer-join pe minimum 4 tabele:
+
+--Să se afișeze toate mașinile din baza de date, împreună cu:
+-----clientul proprietar (nume sau denumire, după caz),
+-----programarea cea mai recentă (dacă există),
+-----procesul de reparație asociat (dacă există),
+-----piesele folosite la reparațiile lor (dacă există).
+--Dacă o mașină nu are programări, procese sau piese asociate, să apară totuși în rezultat cu câmpurile respective NULL.
+
+
+SELECT
+    m.nr_inmatriculare,
+    NVL(pf.nume, pj.denumire) AS nume_client,
+    prog.data_ora AS data_programare,
+    pr.id_proces,
+    p.denumire AS piesa_folosita
+FROM MASINA m
+LEFT OUTER JOIN CLIENT c ON m.id_client = c.id_client
+LEFT OUTER JOIN PERSOANA_FIZICA pf ON c.id_client = pf.id_client
+LEFT OUTER JOIN PERSOANA_JURIDICA pj ON c.id_client = pj.id_client
+LEFT OUTER JOIN PROGRAMARE prog ON m.id_masina = prog.id_masina
+LEFT OUTER JOIN DEVIZ d ON prog.id_programare = d.id_programare
+LEFT OUTER JOIN PROCES_REP pr ON d.id_deviz = pr.id_deviz
+LEFT OUTER JOIN PIESE_UTILIZATE pu ON pr.id_proces = pu.id_proces
+LEFT OUTER JOIN PIESA p ON pu.id_piesa = p.id_piesa
+ORDER BY m.nr_inmatriculare;
+
+
+------- O cerere ce utilizează operația division
+
+-- Să se afișeze numele mecanicilor care sunt responsabili 
+-- de toate serviciile din procesele la care participă.
+
+SELECT DISTINCT a.id_angajat, a.nume, a.prenume
+FROM ANGAJATI a
+JOIN MECANIC m ON a.id_angajat = m.id_angajat
+JOIN ANGAJATI_RESPONSABILI ar ON a.id_angajat = ar.id_angajat
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM SERVICIU_PROCES sp
+    WHERE sp.id_proces = ar.id_proces
+      AND NOT EXISTS (
+          SELECT 1
+          FROM ANGAJATI_RESPONSABILI ar2
+          WHERE ar2.id_angajat = a.id_angajat
+            AND ar2.id_proces = sp.id_proces
+            AND ar2.id_serviciu = sp.id_serviciu
+      )
+)
+ORDER BY a.nume, a.prenume;
+
+
+------- O  cerere care implementează analiza top-n
+--
+-- Să se afișeze cele mai scumpe 3 procese de reparație din service,
+-- arătând pentru fiecare: numărul de înmatriculare al mașinii,
+-- numele clientului, suma totală de plată și data emiterii facturii.
+
+SELECT *
+FROM (
+    SELECT
+    m.nr_inmatriculare,
+    NVL(pf.nume, pj.denumire) AS nume_client,
+    f.cost_total,
+    f.data_emitere
+    FROM FACTURA f
+    JOIN MASINA m ON f.id_masina = m.id_masina
+    JOIN CLIENT c ON f.id_client = c.id_client
+    LEFT JOIN PERSOANA_FIZICA pf ON c.id_client = pf.id_client
+    LEFT JOIN PERSOANA_JURIDICA pj ON c.id_client = pj.id_client
+    ORDER BY f.cost_total DESC
+)
+WHERE ROWNUM <= 3;
+
